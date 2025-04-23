@@ -44,3 +44,24 @@ export async function GET(request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+
+export async function DELETE(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const user = searchParams.get("user");
+
+    if (!user) {
+      return NextResponse.json({ error: "Missing user email" }, { status: 400 });
+    }
+
+    await connectMongoDB();
+
+    const response = await Transaction.deleteMany({ user })
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.log("error: ", error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

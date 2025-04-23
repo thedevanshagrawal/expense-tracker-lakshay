@@ -19,7 +19,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { PlusCircle, TrendingDown, TrendingUp, DollarSign, LogOut, LogOutIcon } from 'lucide-react';
+import { PlusCircle, TrendingDown, TrendingUp, DollarSign, LogOut, LogOutIcon, DeleteIcon } from 'lucide-react';
 import {
     BarChart,
     Bar,
@@ -60,6 +60,22 @@ export default function Home() {
             }
             const data = response.data;
             setTransactions(Array.isArray(data) ? data : []);
+            setIsLoading(false);
+        } catch (error) {
+            console.error('Error fetching transactions:', error);
+            setTransactions([]);
+            setIsLoading(false);
+        }
+    };
+    const deleteTransactions = async () => {
+        try {
+            const response = await axios.delete('/api/transactions', {
+                params: { user }
+            });
+            if (!response) {
+                throw new Error('Failed to fetch transactions');
+            }
+            const data = response.data;
             setIsLoading(false);
         } catch (error) {
             console.error('Error fetching transactions:', error);
@@ -165,6 +181,13 @@ export default function Home() {
                                     Add Transaction
                                 </Button>
                             </DialogTrigger>
+                            <Button
+                                className='bg-red-950'
+                                onClick={() => deleteTransactions()}
+                            >
+                                <DeleteIcon className="mr-2 h-4 w-4" />
+                                Reset Transaction
+                            </Button>
                             <Button
                                 className='bg-red-950'
                                 onClick={() => signOut()}
