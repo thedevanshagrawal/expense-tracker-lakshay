@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { PlusCircle, TrendingDown, TrendingUp, DollarSign, LogOut, LogOutIcon, DeleteIcon } from 'lucide-react';
+import { PlusCircle, TrendingDown, TrendingUp, DollarSign, LogOutIcon, DeleteIcon } from 'lucide-react';
 import {
     BarChart,
     Bar,
@@ -48,16 +47,11 @@ export default function Home() {
     const { data: session, status } = useSession();
     const router = useRouter();
 
+    const user = session?.user?.email;
 
-    const user = session?.user?.email
     const fetchTransactions = async () => {
         try {
-            const response = await axios.get('/api/transactions', {
-                params: { user }
-            });
-            if (!response) {
-                throw new Error('Failed to fetch transactions');
-            }
+            const response = await axios.get('/api/transactions', { params: { user } });
             const data = response.data;
             setTransactions(Array.isArray(data) ? data : []);
             setIsLoading(false);
@@ -67,20 +61,13 @@ export default function Home() {
             setIsLoading(false);
         }
     };
+
     const deleteTransactions = async () => {
         try {
-            const response = await axios.delete('/api/transactions', {
-                params: { user }
-            });
-            if (!response) {
-                throw new Error('Failed to fetch transactions');
-            }
-            const data = response.data;
-            setIsLoading(false);
+            await axios.delete('/api/transactions', { params: { user } });
+            fetchTransactions();
         } catch (error) {
-            console.error('Error fetching transactions:', error);
-            setTransactions([]);
-            setIsLoading(false);
+            console.error('Error deleting transactions:', error);
         }
     };
 
@@ -93,8 +80,6 @@ export default function Home() {
         }
     }, [router, session, status]);
 
-
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -103,7 +88,7 @@ export default function Home() {
                 user
             });
 
-            if (response.status == 201) {
+            if (response.status === 201) {
                 setFormData({
                     type: 'expense',
                     amount: '',
@@ -127,22 +112,21 @@ export default function Home() {
     const expenses = calculateTotal('expense');
     const balance = income - expenses;
 
-    // Prepare data for charts
+    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
     const categoryData = transactions.reduce((acc, transaction) => {
-        const existingCategory = acc.find(item => item.category === transaction.category);
+        const existingCategory = acc.find(item => item.name === transaction.category);
         if (existingCategory) {
             existingCategory.amount += transaction.amount;
         } else {
             acc.push({
-                category: transaction.category,
+                name: transaction.category,
                 amount: transaction.amount,
                 type: transaction.type
             });
         }
         return acc;
     }, []);
-
-    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
     const monthlyData = transactions.reduce((acc, transaction) => {
         const date = new Date(transaction.date);
@@ -254,6 +238,7 @@ export default function Home() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Income Card */}
                     <Card className="p-6">
                         <div className="flex items-center space-x-4">
                             <div className="p-3 bg-green-100 rounded-full">
@@ -265,6 +250,8 @@ export default function Home() {
                             </div>
                         </div>
                     </Card>
+
+                    {/* Expenses Card */}
                     <Card className="p-6">
                         <div className="flex items-center space-x-4">
                             <div className="p-3 bg-red-100 rounded-full">
@@ -276,6 +263,8 @@ export default function Home() {
                             </div>
                         </div>
                     </Card>
+
+                    {/* Balance Card */}
                     <Card className="p-6">
                         <div className="flex items-center space-x-4">
                             <div className="p-3 bg-blue-100 rounded-full">
@@ -291,7 +280,9 @@ export default function Home() {
                     </Card>
                 </div>
 
+                {/* Charts */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Monthly Overview */}
                     <Card className="p-6">
                         <h2 className="text-2xl font-bold mb-4">Monthly Overview</h2>
                         <div className="w-full h-[300px]">
@@ -312,17 +303,18 @@ export default function Home() {
                         </div>
                     </Card>
 
+                    {/* Category Distribution */}
                     <Card className="p-6">
                         <h2 className="text-2xl font-bold mb-4">Category Distribution</h2>
-                        <div className="w-full h-[300px] flex justify-center">
-                            <PieChart width={400} height={300}>
+                        <div className="w-full flex justify-center">
+                            <PieChart width={500} height={350}>
                                 <Pie
                                     data={categoryData}
-                                    cx={200}
-                                    cy={150}
+                                    cx="50%"
+                                    cy="50%"
                                     labelLine={false}
-                                    label={({ category, percent }) => `${category} (${(percent * 100).toFixed(0)}%)`}
-                                    outerRadius={100}
+                                    label={({ payload, percent }) => `${payload.name} (${(percent * 100).toFixed(0)}%)`}
+                                    outerRadius={120}
                                     fill="#8884d8"
                                     dataKey="amount"
                                 >
@@ -333,9 +325,11 @@ export default function Home() {
                                 <Tooltip />
                             </PieChart>
                         </div>
+
                     </Card>
                 </div>
 
+                {/* Recent Transactions */}
                 <Card className="p-6">
                     <h2 className="text-2xl font-bold mb-4">Recent Transactions</h2>
                     <div className="space-y-4">
@@ -353,8 +347,7 @@ export default function Home() {
                                         <p className="font-medium">{transaction.description}</p>
                                         <p className="text-sm text-muted-foreground">{transaction.category}</p>
                                     </div>
-                                    <div className={`text-lg font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                                        }`}>
+                                    <div className={`text-lg font-bold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                                         {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
                                     </div>
                                 </div>
@@ -362,7 +355,7 @@ export default function Home() {
                         )}
                     </div>
                 </Card>
-            </div >
-        </div >
+            </div>
+        </div>
     );
 }
